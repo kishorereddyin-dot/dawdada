@@ -182,7 +182,7 @@ def saved_kg(): return sum(b["kg"] for b in st.session_state.purchased) + sum(p[
 # ======================================================================
 def forest_overlay():
     for ext in (".jpg", ".jpeg", ".png", ".webp"):
-        p = os.path.join("images", "forest" + ext)
+        p = os.path.join("images", "forest (2)" + ext)
         if os.path.exists(p):
             mime = "png" if ext == ".png" else ("webp" if ext == ".webp" else "jpeg")
             data = base64.b64encode(open(p, "rb").read()).decode()
