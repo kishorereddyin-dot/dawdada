@@ -291,6 +291,55 @@ h1,h2,h3,h4{{font-family:'Trebuchet MS',Verdana,sans-serif !important;font-weigh
 .hero .sub{{font-size:24px;font-weight:800;color:#eafff2;letter-spacing:.02em}}
 .hero .tag{{font-size:15px;color:#cdeaDB;margin-top:6px}}
 
+/* ---- animated living hero (home) ---- */
+.eco{{position:relative;height:300px;border-radius:24px;overflow:hidden;margin:4px 0 16px;
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 26px 70px -34px rgba(0,0,0,.85)}}
+.eco-layer{{position:absolute;inset:0}}
+.eco-layer .scene{{width:100%;height:100%;display:block}}
+.eco-layer.thrive{{opacity:1}}
+.eco-layer.strain{{opacity:0}}
+.eco-veil{{position:absolute;inset:0;background:linear-gradient(120deg,rgba(5,22,15,.55),rgba(6,30,21,.30))}}
+.eco-content{{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}}
+.eco-content .emb{{margin-bottom:2px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.5))}}
+.eco-content .name{{font-size:46px;font-weight:900;line-height:1;margin:2px 0 6px;
+  background:linear-gradient(92deg,#eafff4,#bff7d3 55%,#9ff5c8);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 6px 24px rgba(0,0,0,.35)}}
+.eco-content .sub{{font-size:23px;font-weight:800;color:#eafff2;letter-spacing:.02em;text-shadow:0 2px 10px rgba(0,0,0,.5)}}
+.eco-content .tag{{font-size:14.5px;color:#e6f6ec;margin-top:8px;max-width:54ch;text-shadow:0 2px 8px rgba(0,0,0,.6)}}
+
+/* phases */
+.eco.intro .thrive{{opacity:1}} .eco.intro .strain{{opacity:0}}
+.eco.journey .thrive{{animation:ecoFade 7s ease forwards}}
+.eco.journey .strain{{animation:ecoRise 7s ease forwards}}
+.eco.journey::after{{content:"";position:absolute;inset:0;z-index:3;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent);
+  transform:translateX(-120%);animation:ecoStreak 7s ease forwards}}
+.eco.strained .thrive{{opacity:0}} .eco.strained .strain{{opacity:1}}
+.eco.healed .thrive{{animation:ecoRise 3s ease forwards}}
+.eco.healed .strain{{animation:ecoFade 3s ease forwards}}
+@keyframes ecoFade{{0%{{opacity:1}}70%{{opacity:0}}100%{{opacity:0}}}}
+@keyframes ecoRise{{0%{{opacity:0}}70%{{opacity:1}}100%{{opacity:1}}}}
+@keyframes ecoStreak{{0%{{transform:translateX(-120%)}}60%{{transform:translateX(120%)}}100%{{transform:translateX(120%)}}}}
+
+/* drifting motes inside the hero */
+.eco-motes{{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}}
+.eco-motes i{{position:absolute;bottom:-12px;width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle,#c9ffe0,rgba(124,242,168,0));opacity:.55;animation:ecoMote linear infinite}}
+.eco-motes i:nth-child(1){{left:12%;animation-duration:11s}}
+.eco-motes i:nth-child(2){{left:28%;animation-duration:15s;animation-delay:3s}}
+.eco-motes i:nth-child(3){{left:45%;animation-duration:13s;animation-delay:6s}}
+.eco-motes i:nth-child(4){{left:62%;animation-duration:16s;animation-delay:2s}}
+.eco-motes i:nth-child(5){{left:78%;animation-duration:12s;animation-delay:7s}}
+.eco-motes i:nth-child(6){{left:90%;animation-duration:14s;animation-delay:4s}}
+@keyframes ecoMote{{0%{{transform:translateY(0)}}100%{{transform:translateY(-320px)}}}}
+
+/* shimmering primary buttons (incl. Get Started) */
+.stButton>button[kind="primary"]{{position:relative;overflow:hidden}}
+.stButton>button[kind="primary"]::after{{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);
+  animation:btnShine 3.4s ease-in-out infinite}}
+@keyframes btnShine{{0%{{left:-70%}}55%{{left:140%}}100%{{left:140%}}}}
+
 /* glass cards + hover */
 [data-testid="stVerticalBlockBorderWrapper"]{{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.14) !important;
   border-radius:18px !important;backdrop-filter:blur(10px);box-shadow:0 18px 50px -26px rgba(0,0,0,.75);
@@ -608,12 +657,68 @@ def page_setup():
         else:
             st.session_state.user = {"name": name, "prof": prof, "city": city}; go("home"); st.rerun()
 
+def world_phase():
+    # healed once the user has acted; otherwise journey (after Get Started) or calm intro
+    if st.session_state.purchased or st.session_state.posted:
+        return "healed"
+    return "journey" if st.session_state.get("hero_started") else "intro"
+
+# thriving + dusk scenes (stylised, both kept beautiful)
+_THRIVE = ("<svg class='scene' viewBox='0 0 1000 320' preserveAspectRatio='xMidYMid slice'>"
+  "<defs><linearGradient id='sk1' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0c6647'/><stop offset='1' stop-color='#08291d'/></linearGradient>"
+  "<radialGradient id='su1' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#e9fff2'/><stop offset='1' stop-color='#34e89e' stop-opacity='0'/></radialGradient></defs>"
+  "<rect width='1000' height='320' fill='url(#sk1)'/>"
+  "<circle cx='815' cy='78' r='105' fill='url(#su1)'/><circle cx='815' cy='78' r='34' fill='#d7ffe7'/>"
+  "<path d='M0 230 Q250 180 500 222 T1000 212 V320 H0 Z' fill='#11874b'/>"
+  "<path d='M0 260 Q300 222 600 258 T1000 250 V320 H0 Z' fill='#0c6236'/>"
+  "<g fill='#0a5530'><ellipse cx='150' cy='232' rx='34' ry='40'/><ellipse cx='300' cy='244' rx='28' ry='34'/>"
+  "<ellipse cx='680' cy='240' rx='30' ry='36'/><ellipse cx='860' cy='250' rx='26' ry='32'/></g>"
+  "<g fill='#7a4a22'><rect x='145' y='258' width='10' height='26'/><rect x='296' y='268' width='8' height='22'/>"
+  "<rect x='676' y='266' width='8' height='24'/><rect x='856' y='272' width='8' height='20'/></g></svg>")
+
+_DUSK = ("<svg class='scene' viewBox='0 0 1000 320' preserveAspectRatio='xMidYMid slice'>"
+  "<defs><linearGradient id='sk2' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#caa37e'/><stop offset='.5' stop-color='#9a7e84'/><stop offset='1' stop-color='#41384a'/></linearGradient>"
+  "<radialGradient id='su2' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#ffe9c9'/><stop offset='1' stop-color='#e7b07a' stop-opacity='0'/></radialGradient></defs>"
+  "<rect width='1000' height='320' fill='url(#sk2)'/>"
+  "<circle cx='815' cy='120' r='120' fill='url(#su2)'/><circle cx='815' cy='120' r='30' fill='#f4d6a8' opacity='.92'/>"
+  "<path d='M0 235 Q250 192 500 230 T1000 222 V320 H0 Z' fill='#5d6a4e'/>"
+  "<path d='M0 262 Q300 230 600 262 T1000 256 V320 H0 Z' fill='#454c39'/>"
+  "<g fill='#6b5f49'><ellipse cx='150' cy='236' rx='30' ry='34'/><ellipse cx='680' cy='244' rx='26' ry='30'/></g>"
+  "<g fill='#7a6a4a'><rect x='298' y='244' width='7' height='44'/><rect x='858' y='250' width='7' height='40'/></g>"
+  "<g fill='#d9a05a' opacity='.9'><circle cx='320' cy='150' r='4'/><circle cx='520' cy='120' r='3'/>"
+  "<circle cx='430' cy='180' r='3.5'/><circle cx='620' cy='160' r='3'/></g></svg>")
+
+def eco_hero(phase, lines):
+    return f"""
+<div class='eco {phase}'>
+  <div class='eco-layer thrive'>{_THRIVE}</div>
+  <div class='eco-layer strain'>{_DUSK}</div>
+  <div class='eco-veil'></div>
+  <div class='eco-motes'><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class='eco-content'>
+    <div class='emb'>{LOOP}</div>
+    <div class='name'>ReLoop</div>
+    <div class='sub'>Buy · Reuse · Recycle</div>
+    <div class='tag'>{lines}</div>
+  </div>
+</div>"""
+
 def page_home():
     head()
-    st.markdown(f"<div class='hero'><div class='emb'>{LOOP}</div>"
-                "<div class='name'>ReLoop</div><div class='sub'>Buy · Reuse · Recycle</div>"
-                "<div class='tag'>Keeping useful materials out of landfills and in the loop.</div></div>",
-                unsafe_allow_html=True)
+    phase = world_phase()
+    lines = {
+        "intro":   "A thriving world — press Get Started to see what's at stake, and what you can do.",
+        "journey": "We're pushing it to the edge. It doesn't have to stay this way — reuse or recycle to bring it back.",
+        "healed":  "You helped it thrive again. Every loop keeps it alive.",
+    }[phase]
+    st.markdown(eco_hero(phase, lines), unsafe_allow_html=True)
+
+    if phase == "intro":
+        g1, g2, g3 = st.columns([1, 1.2, 1])
+        with g2:
+            if st.button("Get Started  →", type="primary", use_container_width=True, key="get_started"):
+                st.session_state.hero_started = True; st.rerun()
+        st.write("")
 
     main, side = st.columns([2, 1], gap="large")
     with main:
