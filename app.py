@@ -125,6 +125,22 @@ LOOP = ("<svg viewBox='0 0 120 120' width='86' height='86' xmlns='http://www.w3.
         "<path d='M88 44 A38 38 0 1 0 96 70' fill='none' stroke='url(#lp)' stroke-width='11' stroke-linecap='round'/>"
         "<path d='M74 30 L92 40 L84 58 Z' fill='#34e89e'/></svg>")
 
+# lane emblems for the marketplace cards
+LANE_EMB = {
+ "reuse": ("<svg viewBox='0 0 120 120' width='60' height='60' xmlns='http://www.w3.org/2000/svg'>"
+   "<defs><linearGradient id='re' x1='0' x2='1'><stop offset='0' stop-color='#bff7d3'/><stop offset='1' stop-color='#34e89e'/></linearGradient></defs>"
+   "<path d='M86 46 A32 32 0 1 0 90 64' fill='none' stroke='url(#re)' stroke-width='10' stroke-linecap='round'/>"
+   "<path d='M74 34 L90 42 L83 58 Z' fill='#34e89e'/>"
+   "<path d='M34 74 A32 32 0 0 0 60 88' fill='none' stroke='url(#re)' stroke-width='10' stroke-linecap='round' opacity='.55'/></svg>"),
+ "recycle": ("<svg viewBox='0 0 120 120' width='60' height='60' xmlns='http://www.w3.org/2000/svg'>"
+   "<defs><linearGradient id='rc' x1='0' x2='1'><stop offset='0' stop-color='#9fe8e0'/><stop offset='1' stop-color='#34e89e'/></linearGradient></defs>"
+   "<g fill='url(#rc)'>"
+   "<g transform='rotate(0 60 60)'><path d='M60 24 L70 42 L62 42 L62 56 L58 56 L58 42 L50 42 Z'/></g>"
+   "<g transform='rotate(120 60 60)'><path d='M60 24 L70 42 L62 42 L62 56 L58 56 L58 42 L50 42 Z'/></g>"
+   "<g transform='rotate(240 60 60)'><path d='M60 24 L70 42 L62 42 L62 56 L58 56 L58 42 L50 42 Z'/></g>"
+   "</g></svg>"),
+}
+
 # ======================================================================
 # HELPERS
 # ======================================================================
@@ -267,6 +283,37 @@ h1,h2,h3,h4{{font-family:'Trebuchet MS',Verdana,sans-serif !important;font-weigh
 .pf-line{{margin-top:16px;font-size:14px;color:#cdeada;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;display:inline-block}}
 
+/* marketplace lane cards */
+.lane{{text-align:center;padding:8px 4px 4px}}
+.lane-emb{{width:96px;height:96px;border-radius:50%;margin:2px auto 14px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 38% 32%,rgba(52,232,158,.28),rgba(20,160,110,.10));
+  border:1px solid rgba(255,255,255,.16);box-shadow:0 0 26px rgba(52,232,158,.28)}}
+.lane-emb.recycle{{background:radial-gradient(circle at 38% 32%,rgba(80,200,210,.26),rgba(20,160,110,.10))}}
+.lane-title{{font-size:30px;font-weight:900;color:#fff;line-height:1}}
+.lane-desc{{font-size:14px;color:#bcd9cb;margin:8px auto 12px;max-width:30ch}}
+.lane-pills{{display:flex;gap:8px;justify-content:center;margin-bottom:6px}}
+.lane-pills span{{font-size:11px;font-weight:700;color:#9ff5c8;background:rgba(52,232,158,.14);
+  border:1px solid rgba(52,232,158,.22);padding:3px 10px;border-radius:999px}}
+
+/* Planet Health side rail */
+.side{{background:linear-gradient(160deg,rgba(8,60,42,.55),rgba(10,40,30,.40));
+  border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:18px 18px 16px;
+  box-shadow:0 24px 60px -34px rgba(0,0,0,.8)}}
+.side-head{{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;color:#fff;margin-bottom:6px}}
+.gauge{{display:flex;justify-content:center;margin:2px 0 2px}}
+.side-sub{{text-align:center;font-size:12px;color:#a9d2bd;margin-bottom:14px}}
+.side-bnd-title{{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9ff5c8;margin-bottom:8px}}
+.bnd{{display:flex;align-items:center;gap:10px;margin-bottom:8px}}
+.bnd-l{{flex:0 0 96px;font-size:12px;color:#cfe7da}}
+.bnd-bar{{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}}
+.bnd-bar span{{display:block;height:100%;border-radius:999px}}
+.side-figs{{display:flex;gap:10px;margin:14px 0 4px}}
+.side-figs div{{flex:1;text-align:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;padding:10px 6px}}
+.side-figs b{{display:block;font-size:18px;font-weight:900;color:#7cf2a8}}
+.side-figs span{{font-size:10.5px;color:#a9d2bd;text-transform:uppercase;letter-spacing:.04em}}
+.side-foot{{font-size:11px;color:#8fb6a3;margin-top:12px;line-height:1.5}}
+
 .stTextInput input,[data-baseweb="input"] input{{background:rgba(255,255,255,.10) !important;color:#eafff2 !important;border-color:rgba(255,255,255,.18) !important}}
 [data-testid="stFileUploaderDropzone"]{{background:rgba(255,255,255,.06) !important}}
 .stRadio [role="radiogroup"]{{gap:6px}}
@@ -389,6 +436,47 @@ def impact_panel():
 </script>
 """, unsafe_allow_html=True)
 
+def side_panel():
+    """Neat 'Planet Health' rail — one score + planetary boundaries. Low clutter."""
+    kg = 8200 + saved_kg()
+    score = min(99, int(62 + saved_kg() / 25 + len(st.session_state.purchased)))
+    circ = 2 * 3.14159 * 50
+    dash = score / 100 * circ
+    co2 = kg * 1.8 / 1000.0
+    tons = kg / 1000.0
+    # illustrative planetary-boundary readouts (improve slightly with activity)
+    bnd = [("Climate", min(95, 70 + len(st.session_state.purchased))),
+           ("Freshwater", min(95, 64 + len(st.session_state.posted))),
+           ("Waste & land", min(96, 78 + len(st.session_state.purchased)))]
+    bars = "".join(
+        f"<div class='bnd'><span class='bnd-l'>{nm}</span>"
+        f"<span class='bnd-bar'><span style='width:{pct}%;"
+        f"background:{'#34e89e' if pct>=70 else '#e0a93b'}'></span></span></div>"
+        for nm, pct in bnd)
+    st.markdown(f"""
+<div class='side'>
+  <div class='side-head'><span class='imp-live'><span class='dot'></span>LIVE</span> Planet health</div>
+  <div class='gauge'>
+    <svg viewBox='0 0 120 120' width='150' height='150'>
+      <circle cx='60' cy='60' r='50' fill='none' stroke='rgba(255,255,255,.10)' stroke-width='10'/>
+      <circle cx='60' cy='60' r='50' fill='none' stroke='url(#gg)' stroke-width='10' stroke-linecap='round'
+        stroke-dasharray='{dash:.1f} {circ-dash:.1f}' transform='rotate(-90 60 60)'/>
+      <defs><linearGradient id='gg' x1='0' x2='1'><stop offset='0' stop-color='#bff7d3'/><stop offset='1' stop-color='#34e89e'/></linearGradient></defs>
+      <text x='60' y='57' text-anchor='middle' font-size='30' font-weight='900' fill='#ffffff'>{score}</text>
+      <text x='60' y='75' text-anchor='middle' font-size='11' fill='#9fc7b3'>/ 100</text>
+    </svg>
+  </div>
+  <div class='side-sub'>Community score, rising as more is reused &amp; recycled.</div>
+  <div class='side-bnd-title'>Planetary boundaries eased</div>
+  {bars}
+  <div class='side-figs'>
+    <div><b>{tons:,.1f} t</b><span>waste diverted</span></div>
+    <div><b>{co2:,.1f} t</b><span>CO₂ prevented</span></div>
+  </div>
+  <div class='side-foot'>Illustrative — reuse and recycling lower pressure on key Earth systems.</div>
+</div>
+""", unsafe_allow_html=True)
+
 # ======================================================================
 # ITEM CARD
 # ======================================================================
@@ -462,30 +550,27 @@ def page_home():
                 "<div class='tag'>Keeping useful materials out of landfills and in the loop.</div></div>",
                 unsafe_allow_html=True)
 
-    st.markdown("#### What would you like to do?")
-    a, b = st.columns(2)
-    with a:
+    main, side = st.columns([2, 1], gap="large")
+    with main:
+        st.markdown("#### What would you like to do?")
         with st.container(border=True):
             st.markdown("### Browse marketplace")
             st.write("Find reusable goods and recyclable materials. Pick Reuse or Recycle, then a category.")
             if st.button("Browse marketplace", type="primary", use_container_width=True):
                 st.session_state.mk_lane = None; st.session_state.mk_cat = None
                 go("market"); st.rerun()
-    with b:
         with st.container(border=True):
             st.markdown("### Sell an item")
             st.write("List something you're done with — it appears in the marketplace instantly.")
             if st.button("Sell an item", use_container_width=True):
                 go("sell"); st.rerun()
-
-    st.write("")
-    c1, c2, c3 = st.columns(3)
-    stat(c1, f"{len(st.session_state.cart)}", "In your cart")
-    stat(c2, f"{cart_kg():.0f} kg", "Cart will save")
-    stat(c3, f"{saved_kg():.0f} kg", "You've saved")
-
-    st.write("")
-    impact_panel()
+        st.write("")
+        c1, c2, c3 = st.columns(3)
+        stat(c1, f"{len(st.session_state.cart)}", "In your cart")
+        stat(c2, f"{cart_kg():.0f} kg", "Cart will save")
+        stat(c3, f"{saved_kg():.0f} kg", "You've saved")
+    with side:
+        side_panel()
 
 def page_market():
     head()
@@ -497,10 +582,16 @@ def page_market():
         st.caption("First, what are you after?")
         a, b = st.columns(2)
         for col, lk in zip((a, b), ("reuse", "recycle")):
+            n_items = len([i for i in all_items() if i["lane"] == lk])
+            n_cats = len(LANES[lk]["cats"])
             with col:
                 with st.container(border=True):
-                    st.markdown(f"### {LANES[lk]['label']}")
-                    st.write(LANES[lk]["desc"])
+                    st.markdown(
+                        f"<div class='lane'><div class='lane-emb {lk}'>{LANE_EMB[lk]}</div>"
+                        f"<div class='lane-title'>{LANES[lk]['label']}</div>"
+                        f"<div class='lane-desc'>{LANES[lk]['desc']}</div>"
+                        f"<div class='lane-pills'><span>{n_cats} categories</span>"
+                        f"<span>{n_items} items</span></div></div>", unsafe_allow_html=True)
                     if st.button(f"Browse {LANES[lk]['label']}", key=f"lane_{lk}",
                                  type="primary", use_container_width=True):
                         st.session_state.mk_lane = lk; st.rerun()
@@ -666,6 +757,3 @@ def page_account():
     "auth": page_auth, "setup": page_setup, "home": page_home, "market": page_market,
     "sell": page_sell, "cart": page_cart, "account": page_account,
 }.get(st.session_state.page, page_auth)()
-
-st.markdown("<div style='text-align:center;color:#6f9a85;font-size:11px;margin-top:30px'>"
-            "ReLoop build v3 · top-nav + drill-down</div>", unsafe_allow_html=True)
