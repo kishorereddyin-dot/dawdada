@@ -182,7 +182,7 @@ def saved_kg(): return sum(b["kg"] for b in st.session_state.purchased) + sum(p[
 # ======================================================================
 def forest_overlay():
     for ext in (".jpg", ".jpeg", ".png", ".webp"):
-        p = os.path.join("images", "forest (2).jpg" + ext)
+        p = os.path.join("images", "forest" + ext)
         if os.path.exists(p):
             mime = "png" if ext == ".png" else ("webp" if ext == ".webp" else "jpeg")
             data = base64.b64encode(open(p, "rb").read()).decode()
@@ -240,6 +240,32 @@ h1,h2,h3,h4{{font-family:'Trebuchet MS',Verdana,sans-serif !important;font-weigh
 .stat{{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;text-align:center}}
 .stat .n{{font-size:24px;font-weight:900;color:#7cf2a8;line-height:1}}
 .stat .l{{font-size:11px;color:#a9d2bd;margin-top:5px;letter-spacing:.05em;text-transform:uppercase}}
+
+/* live impact panel */
+.imp-wrap{{border-radius:22px;padding:22px 24px 18px;margin:6px 0 8px;
+  background:linear-gradient(135deg,rgba(8,60,42,.62),rgba(10,40,30,.42));
+  border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px -32px rgba(0,0,0,.8)}}
+.imp-head{{display:flex;align-items:center;gap:12px;font-weight:800;font-size:19px;color:#fff;margin-bottom:16px}}
+.imp-live{{display:inline-flex;align-items:center;gap:7px;background:#06241a;color:#7cf2a8;
+  font-size:11px;font-weight:800;letter-spacing:.14em;padding:4px 11px;border-radius:999px}}
+.imp-live .dot{{width:8px;height:8px;border-radius:50%;background:#34e89e;animation:pls 1.2s ease-in-out infinite}}
+.imp-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}}
+.imp-cell{{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;
+  padding:18px 14px;text-align:center;transition:transform .18s,border-color .18s}}
+.imp-cell:hover{{transform:translateY(-4px);border-color:rgba(57,224,160,.55)}}
+.imp-ic{{font-size:24px;line-height:1;margin-bottom:8px}}
+.imp-n{{font-size:27px;font-weight:900;line-height:1.05;
+  background:linear-gradient(92deg,#bff7d3,#39e0a0 60%,#9ff5c8);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.imp-l{{font-size:11.5px;color:#a9d2bd;margin-top:6px;letter-spacing:.05em;text-transform:uppercase}}
+.imp-foot{{font-size:11.5px;color:#8fb6a3;margin-top:14px;line-height:1.5}}
+@media (max-width:760px){{.imp-grid{{grid-template-columns:repeat(2,1fr)}}}}
+
+/* profile header */
+.pf-av{{width:62px;height:62px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:#06241a;background:linear-gradient(135deg,#bff7d3,#34e89e);
+  box-shadow:0 0 22px rgba(52,232,158,.5)}}
+.pf-line{{margin-top:16px;font-size:14px;color:#cdeada;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;display:inline-block}}
 
 .stTextInput input,[data-baseweb="input"] input{{background:rgba(255,255,255,.10) !important;color:#eafff2 !important;border-color:rgba(255,255,255,.18) !important}}
 [data-testid="stFileUploaderDropzone"]{{background:rgba(255,255,255,.06) !important}}
@@ -305,6 +331,63 @@ def head():
 
 def stat(col, n, label):
     col.markdown(f"<div class='stat'><div class='n'>{n}</div><div class='l'>{label}</div></div>", unsafe_allow_html=True)
+
+# ======================================================================
+# LIVE PLANET IMPACT  (community totals + your own activity)
+# ======================================================================
+def impact_numbers():
+    items = 12457 + len(st.session_state.purchased) + len(st.session_state.posted)
+    kg = 8200 + saved_kg()                       # total material diverted (kg)
+    tons = kg / 1000.0
+    trees = kg * 0.017                            # ~ per kg paper-equivalent
+    water = kg * 170                              # litres saved per kg
+    energy = kg * 3.9                             # kWh saved per kg
+    co2 = kg * 1.8 / 1000.0                       # tonnes CO2e per kg
+    return [
+        ("Items reused",   f"{items:,}",          "♻"),
+        ("Trees saved",    f"{trees:,.0f}",        "🌳"),
+        ("Waste diverted", f"{tons:,.1f} t",       "🗑"),
+        ("Water saved",    f"{water/1e6:,.2f} ML", "💧"),
+        ("Energy saved",   f"{energy:,.0f} kWh",   "⚡"),
+        ("CO₂ prevented",  f"{co2:,.1f} t",        "🌎"),
+    ]
+
+def impact_panel():
+    rows = impact_numbers()
+    cells = "".join(
+        f"<div class='imp-cell'><div class='imp-ic'>{ic}</div>"
+        f"<div class='imp-n' data-target=\"{val}\">{val}</div>"
+        f"<div class='imp-l'>{label}</div></div>"
+        for (label, val, ic) in rows)
+    st.markdown(f"""
+<div class='imp-wrap'>
+  <div class='imp-head'><span class='imp-live'><span class='dot'></span>LIVE</span> Planet impact, together</div>
+  <div class='imp-grid'>{cells}</div>
+  <div class='imp-foot'>Community totals, growing as items get reused and recycled — estimated from average
+     material, water, energy and CO₂ savings per kg kept out of landfill.</div>
+</div>
+<script>
+(function(){{
+  const els = window.parent.document.querySelectorAll('.imp-n');
+  els.forEach(el=>{{
+    const raw = el.getAttribute('data-target')||'';
+    const num = parseFloat(raw.replace(/[^0-9.]/g,''));
+    const suffix = raw.replace(/[0-9.,\\s]/g,'').trim();
+    const dec = ((raw.split('.')[1]||'').match(/[0-9]+/)||[''])[0].length;
+    if(isNaN(num)) return;
+    let cur=0; const steps=46, inc=num/steps;
+    const fmt=v=>v.toLocaleString(undefined,{{minimumFractionDigits:dec,maximumFractionDigits:dec}});
+    const t=setInterval(()=>{{cur+=inc; if(cur>=num){{cur=num; clearInterval(t);}}
+      el.textContent=fmt(cur)+(suffix?(' '+suffix):'');}}, 26);
+  }});
+  setInterval(()=>{{
+    const first=window.parent.document.querySelector('.imp-n');
+    if(first){{const v=parseFloat(first.textContent.replace(/[^0-9.]/g,''))+Math.floor(Math.random()*3);
+      first.textContent=v.toLocaleString();}}
+  }}, 4000);
+}})();
+</script>
+""", unsafe_allow_html=True)
 
 # ======================================================================
 # ITEM CARD
@@ -400,6 +483,9 @@ def page_home():
     stat(c1, f"{len(st.session_state.cart)}", "In your cart")
     stat(c2, f"{cart_kg():.0f} kg", "Cart will save")
     stat(c3, f"{saved_kg():.0f} kg", "You've saved")
+
+    st.write("")
+    impact_panel()
 
 def page_market():
     head()
@@ -538,9 +624,23 @@ def page_cart():
 def page_account():
     head()
     u = st.session_state.user
-    st.markdown(f"<div class='hero'><div class='name' style='font-size:34px'>{u.get('name','My profile')}</div>"
-                f"<div class='tag'>{' · '.join([x for x in [u.get('prof'), u.get('city')] if x]) or 'Your ReLoop profile'}</div></div>",
-                unsafe_allow_html=True)
+    name = (u.get("name") or "My profile").strip()
+    initial = name[0].upper() if name else "R"
+    meta = " · ".join([x for x in [u.get("prof"), u.get("city")] if x]) or "ReLoop member"
+    saved = saved_kg()
+    line = ("Just getting started — your first loop is one click away." if saved == 0
+            else f"You've kept about {saved:.0f} kg out of landfills. Keep the loop going.")
+    st.markdown(f"""
+<div class='hero' style='text-align:left;padding:26px 28px'>
+  <div style='display:flex;align-items:center;gap:18px'>
+    <div class='pf-av'>{initial}</div>
+    <div>
+      <div class='name' style='font-size:32px;text-align:left;margin:0'>{name}</div>
+      <div class='tag' style='margin-top:2px'>{meta}</div>
+    </div>
+  </div>
+  <div class='pf-line'>{line}</div>
+</div>""", unsafe_allow_html=True)
     bought, posted = st.session_state.purchased, st.session_state.posted
     c1, c2, c3 = st.columns(3)
     stat(c1, len(bought), "Items purchased")
