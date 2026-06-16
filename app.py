@@ -4,6 +4,7 @@ Pure-Python Streamlit app.  Run:  streamlit run app.py
 """
 
 import os
+import re
 import base64
 import streamlit as st
 
@@ -172,6 +173,10 @@ def init():
 init()
 def go(p): st.session_state.page = p
 
+def _first_int(s, default=0):
+    m = re.search(r"\d+", str(s).replace(",", ""))
+    return int(m.group()) if m else default
+
 def seed_items():
     out = []
     for cid, rows in SEED.items():
@@ -181,16 +186,36 @@ def seed_items():
             it = {"id": f"s_{cid}_{i}", "cid": cid, "cat": CAT_NAME[cid], "lane": lane,
                   "title": title, "meta": meta, "price": price, "cond": cond,
                   "slug": slug, "img": None, "kg": CAT_WEIGHT[cid]}
-            if lane == "reuse":
-                it["buyer"] = bw
-            else:
+            if lane == "recycle":
                 it["weight"] = bw
+                it["unit"] = "kg"
+                it["unit_price"] = _first_int(price)            # ₹ per kg
+                it["qty"] = _first_int(bw, 1)                   # kg available
+                it["kg_per_unit"] = 1.0
+            else:
+                it["buyer"] = bw
+                count = 0
+                m = re.search(r"[×x]\s*(\d+)", title) or re.search(r"(\d+)\s*pcs", title)
+                if m:
+                    count = int(m.group(1))
+                lot_price = _first_int(price, 0)
+                if count > 1:
+                    it["unit"] = "piece"
+                    it["qty"] = count
+                    it["unit_price"] = max(1, round(lot_price / count))
+                    it["kg_per_unit"] = CAT_WEIGHT[cid] / count
+                else:
+                    it["unit"] = "lot" if "/ lot" in price else "item"
+                    it["qty"] = 1
+                    it["unit_price"] = lot_price
+                    it["kg_per_unit"] = float(CAT_WEIGHT[cid])
             out.append(it)
     return out
 def all_items(): return st.session_state.posted + seed_items()
 def cart_ids(): return {c["id"] for c in st.session_state.cart}
 def bought_ids(): return {b["id"] for b in st.session_state.purchased}
 def cart_kg(): return sum(c["kg"] for c in st.session_state.cart)
+def cart_money(): return sum(c.get("line_total", 0) for c in st.session_state.cart)
 def saved_kg(): return sum(b["kg"] for b in st.session_state.purchased) + sum(p["kg"] for p in st.session_state.posted)
 
 # ======================================================================
@@ -205,6 +230,18 @@ def forest_overlay():
             return (f".stApp::after{{content:'';position:fixed;inset:0;z-index:-2;opacity:.30;"
                     f"background:url('data:image/{mime};base64,{data}') center/cover no-repeat;mix-blend-mode:luminosity}}")
     return ""
+
+def hero_bg():
+    """Background image for the hero box: images/hero.* if present, else a soft fallback."""
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        p = os.path.join("images", "hero" + ext)
+        if os.path.exists(p):
+            mime = "png" if ext == ".png" else ("webp" if ext == ".webp" else "jpeg")
+            data = base64.b64encode(open(p, "rb").read()).decode()
+            return f"url('data:image/{mime};base64,{data}')"
+    # fallback texture so it still looks good with no file
+    return ("radial-gradient(60% 90% at 80% 10%, rgba(124,242,168,.18), transparent 60%),"
+            "radial-gradient(50% 80% at 10% 90%, rgba(20,160,110,.20), transparent 60%)")
 
 st.markdown(f"""
 <style>
@@ -241,6 +278,13 @@ h1,h2,h3,h4{{font-family:'Trebuchet MS',Verdana,sans-serif !important;font-weigh
 .hero{{position:relative;overflow:hidden;border-radius:24px;padding:34px 30px 30px;margin:4px 0 18px;text-align:center;
   background:linear-gradient(120deg,rgba(11,75,52,.78),rgba(20,160,110,.42));
   border:1px solid rgba(255,255,255,.16);box-shadow:0 26px 70px -34px rgba(0,0,0,.8)}}
+.hero::before{{content:"";position:absolute;inset:0;z-index:0;
+  background:{hero_bg()} center/cover no-repeat;opacity:.42;
+  animation:heroken 40s ease-in-out infinite alternate}}
+.hero::after{{content:"";position:absolute;inset:0;z-index:0;
+  background:linear-gradient(120deg,rgba(6,28,20,.80),rgba(7,40,28,.55))}}
+@keyframes heroken{{from{{transform:scale(1.04)}}to{{transform:scale(1.16)}}}}
+.hero > *{{position:relative;z-index:1}}
 .hero .emb{{display:flex;justify-content:center;margin-bottom:4px}}
 .hero .name{{font-size:46px;font-weight:900;line-height:1;margin:2px 0 6px;
   background:linear-gradient(92deg,#bff7d3,#39e0a0 60%,#9ff5c8);-webkit-background-clip:text;background-clip:text;color:transparent}}
@@ -344,6 +388,9 @@ h1,h2,h3,h4{{font-family:'Trebuchet MS',Verdana,sans-serif !important;font-weigh
 .rl-buyer{{display:inline-block;font-size:11px;font-weight:600;color:#9ff5c8 !important;background:rgba(52,232,158,.14);padding:2px 8px;border-radius:999px;margin-top:3px}}
 .rl-price{{display:inline-block;font-weight:900;font-size:16px;color:#06241a !important;margin-top:6px;background:linear-gradient(92deg,#bff7d3,#39e0a0);padding:4px 12px;border-radius:999px}}
 .crumb{{color:#9ff5c8 !important;font-weight:700;letter-spacing:.03em}}
+.quote{{margin:8px 0 4px;font-size:14px;color:#dcefe3}}
+.quote b{{color:#7cf2a8;font-size:17px;font-weight:900}}
+.quote span{{color:#a9d2bd;font-size:12px}}
 hr{{margin:.7rem 0;border-color:rgba(255,255,255,.12)}}
 </style>
 <div class="amb"><i style="left:9%;animation-duration:16s"></i><i style="left:26%;animation-duration:22s;animation-delay:5s"></i>
@@ -491,18 +538,36 @@ def item_card(it, col, buyable=True):
                         f"<div class='rl-meta'>{it.get('cat') or ''} · {it.get('meta') or ''}</div>", unsafe_allow_html=True)
             if it.get("buyer"):
                 st.markdown(f"<div class='rl-buyer'>Bought by {it['buyer']}</div>", unsafe_allow_html=True)
-            price = it.get("price") or "" if it["lane"] == "reuse" else f"{it.get('price') or ''} · {it.get('weight','')}"
-            st.markdown(f"<span class='rl-price'>{price}</span>", unsafe_allow_html=True)
-            st.caption(f"about {it['kg']} kg kept from landfill")
+
+            unit = it.get("unit", "lot")
+            up = it.get("unit_price", _first_int(it.get("price", 0)))
+            avail = int(it.get("qty", 1))
+            st.markdown(f"<span class='rl-price'>₹{up:g} / {unit}</span>", unsafe_allow_html=True)
+            st.caption(f"{avail:g} {unit} available · up to about {it['kg']:g} kg saved")
             if not buyable:
                 return
             st.write("")
             if it["id"] in bought_ids():
-                st.success("Purchased")
-            elif it["id"] in cart_ids():
-                st.button("In cart", key=f"in_{it['id']}", use_container_width=True, disabled=True)
-            elif st.button("Add to cart", key=f"add_{it['id']}", use_container_width=True, type="primary"):
-                st.session_state.cart.append(it); st.rerun()
+                st.success("Purchased"); return
+            if it["id"] in cart_ids():
+                st.button("In cart", key=f"in_{it['id']}", use_container_width=True, disabled=True); return
+
+            # buy only what you need — quote a quantity
+            if avail > 1:
+                qsel = st.number_input(f"How many {unit}?", min_value=1, max_value=avail,
+                                       value=1, step=1, key=f"q_{it['id']}")
+            else:
+                qsel = 1
+            qsel = int(qsel)
+            total = up * qsel
+            line_kg = it.get("kg_per_unit", float(it["kg"])) * qsel
+            st.markdown(f"<div class='quote'>You pay <b>₹{total:g}</b> "
+                        f"<span>for {qsel} {unit}</span></div>", unsafe_allow_html=True)
+            if st.button("Add to cart", key=f"add_{it['id']}", use_container_width=True, type="primary"):
+                line = dict(it)
+                line["buy_qty"] = qsel; line["buy_unit"] = unit
+                line["line_total"] = total; line["kg"] = line_kg
+                st.session_state.cart.append(line); st.rerun()
 
 # ======================================================================
 # PAGES
@@ -646,41 +711,39 @@ def page_sell():
     photo = st.file_uploader("Photo (required)", type=["png", "jpg", "jpeg"])
     if photo is not None:
         st.image(photo, width=220, caption="Preview")
+
+    unit = "piece" if lane == "reuse" else "kg"
+    st.caption("Set a per-unit price and how much is available — buyers can take just part of it.")
+    cqty, cprice = st.columns(2)
+    qty_n = cqty.number_input(f"Quantity available ({unit})", min_value=1, value=10, step=1)
+    unit_price = cprice.number_input(f"Price per {unit} (₹)", min_value=1, value=20, step=1)
     if lane == "reuse":
-        qty = st.text_input("Lot size / quantity", placeholder="e.g. 25 pieces")
         cond = st.radio("Condition", ["Like new", "Good, fully usable", "Worn but works"], horizontal=True)
-        price = st.text_input("Price (₹)", placeholder="e.g. 450")
     else:
-        weight = st.text_input("Approx. weight available", placeholder="e.g. 25 kg")
         cond = st.radio("Quality", ["Clean & sorted", "Mixed", "Contaminated"], horizontal=True)
-        rate = st.text_input("Rate (₹ / kg)", placeholder="e.g. 18")
     note = st.text_input("Notes", placeholder="who it suits / sorting details")
+    st.markdown(f"<div class='quote'>Full lot value <b>₹{int(qty_n*unit_price):g}</b> "
+                f"<span>= {int(qty_n)} {unit} × ₹{int(unit_price)}</span></div>", unsafe_allow_html=True)
 
     if st.button("List it on the marketplace", type="primary"):
         miss = []
         if not title.strip(): miss.append("name")
         if photo is None: miss.append("photo")
         if not note.strip(): miss.append("notes")
-        if lane == "reuse":
-            if not qty.strip(): miss.append("lot size")
-            if not price.strip(): miss.append("price")
-        else:
-            if not weight.strip(): miss.append("weight")
-            if not rate.strip(): miss.append("rate")
         if miss:
             st.warning("Please fill in: " + ", ".join(miss) + ".")
         else:
             iid = f"u_{st.session_state.nid}"; st.session_state.nid += 1
+            qn = int(qty_n); upn = int(unit_price)
             it = {"id": iid, "cid": cid, "cat": cat_label, "lane": lane, "title": title,
-                  "cond": cond, "slug": None, "img": photo.getvalue(), "kg": CAT_WEIGHT[cid]}
+                  "cond": cond, "slug": None, "img": photo.getvalue(), "kg": CAT_WEIGHT[cid],
+                  "unit": unit, "unit_price": upn, "qty": qn,
+                  "kg_per_unit": (1.0 if lane == "recycle" else CAT_WEIGHT[cid] / qn),
+                  "meta": f"{qn} {unit} · {note}", "price": f"₹{upn} / {unit}"}
             if lane == "reuse":
-                it["meta"] = f"{qty} · {note}"
-                it["price"] = price if price.strip().startswith("₹") else "₹" + price.strip()
                 it["buyer"] = None
             else:
-                it["meta"] = note
-                it["price"] = "₹" + rate.strip().replace("₹", "").replace("/kg", "").strip() + " / kg"
-                it["weight"] = weight
+                it["weight"] = f"{qn} kg"
             st.session_state.posted.insert(0, it)
             st.session_state.mk_lane = lane; st.session_state.mk_cat = cid
             st.success("Listed! Taking you to it in the marketplace…")
@@ -700,13 +763,16 @@ def page_cart():
         with st.container(border=True):
             a, b, c = st.columns([1, 3, 1])
             with a: item_image(it)
+            qty = it.get("buy_qty", 1); unit = it.get("buy_unit", it.get("unit", "lot"))
+            total = it.get("line_total", it.get("unit_price", 0) * qty)
             b.markdown(f"<div class='rl-name'>{it['title']}</div>"
-                       f"<div class='rl-meta'>{it['cat']} · {'Reuse' if it['lane']=='reuse' else 'Recycle'}</div>"
-                       f"{badge(it.get('cond'))} <span class='rl-price'>{it['price']}</span>", unsafe_allow_html=True)
+                       f"<div class='rl-meta'>{it['cat']} · {'Reuse' if it['lane']=='reuse' else 'Recycle'} · "
+                       f"{qty} {unit} × ₹{it.get('unit_price',0):g}</div>"
+                       f"{badge(it.get('cond'))} <span class='rl-price'>₹{total:g}</span>", unsafe_allow_html=True)
             if c.button("Remove", key=f"rm_{idx}"):
                 st.session_state.cart.pop(idx); st.rerun()
     st.divider()
-    st.markdown(f"### Total: {len(cart)} item(s) · about {cart_kg():.0f} kg saved")
+    st.markdown(f"### Total: ₹{cart_money():g} · {len(cart)} item(s) · about {cart_kg():.0f} kg saved")
     if st.button("Checkout", type="primary", use_container_width=True):
         st.session_state.purchased.extend(cart); st.session_state.cart = []
         st.success("Done — counted in your impact.")
